@@ -7,6 +7,10 @@ app = FastAPI()
 # Allow CORS for extension and frontend
 # origins = ["http://localhost:3000", "chrome-extension://*", "*"].
 
+@app.get("/")
+def read_root():
+    return {"message": "Hello from FastAPI on Vercel!"}
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
