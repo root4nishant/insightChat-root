@@ -1,6 +1,7 @@
 import os
 import json
 import re
+from typing import List
 import google.generativeai as genai
 from dotenv import load_dotenv
 
@@ -66,3 +67,10 @@ async def gemini_analysis(messages):
             "error": "❌ Unexpected failure in gemini_analysis.",
             "exception": str(e)
         }
+
+
+def estimate_tokens(messages: List[str]) -> int:
+    all_text = " ".join(messages)
+    word_count = len(all_text.split())
+    estimated_tokens = word_count // 4 
+    return estimated_tokens
