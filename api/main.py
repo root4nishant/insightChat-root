@@ -17,7 +17,8 @@ def read_root():
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://insight-chat.vercel.app", "http://localhost:3000", "chrome-extension://*"],
+    # allow_origins=["https://insight-chat.vercel.app", "http://localhost:3000", "chrome-extension://*"],
+     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -25,6 +26,6 @@ app.add_middleware(
 
 
 # Routers
-app.include_router(chat_router)
 app.include_router(user_router)
+app.include_router(chat_router)
 
