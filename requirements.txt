@@ -6,3 +6,4 @@ motor
 requests
 google-generativeai
 mangum
+scikit-learn

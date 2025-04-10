@@ -8,24 +8,32 @@ from dotenv import load_dotenv
 load_dotenv()
 
 async def gemini_analysis(messages):
-    # If messages is a list of objects (with `text`, `time`), convert to plain strings
     if isinstance(messages, list):
         messages = "\n".join([msg["text"] if isinstance(msg, dict) else str(msg) for msg in messages])
 
     prompt = f"""
     Analyze the following WhatsApp messages and respond ONLY in valid JSON.
 
-    Return the following structure exactly, without markdown or comments:
+    Return the structure below with no markdown, no comments, no explanations:
 
-    ```json
     {{
-      "summary": "A short summary of the overall chat.",
+      "summary": "A short summary of the chat.",
       "sentiment_counts": {{
         "positive": 0,
         "neutral": 0,
         "negative": 0
       }},
       "keywords": ["keyword1", "keyword2"],
+      "topic_frequency": {{
+        "product": 5,
+        "delivery": 2,
+        "payment": 3
+      }},
+      "message_volume_timeline": {{
+        "2024-04-01": 15,
+        "2024-04-02": 23,
+        "2024-04-03": 5
+      }},
       "recommended_actions": ["Action 1", "Action 2"],
       "insights": [
         {{
@@ -35,12 +43,15 @@ async def gemini_analysis(messages):
         }}
       ]
     }}
-    ```
 
-    Messages:
+    Instructions:
+    - Use the actual content to derive topic frequency.
+    - Create a simple message volume timeline across 3–5 mock date buckets.
+    - Use only lowercase keys and valid JSON.
+    - Do not return markdown, code blocks or extra explanation.
+
+    Chat Messages:
     {messages}
-
-    IMPORTANT: Respond with JSON only. Do NOT include explanations, markdown headings, or additional text.
     """
 
     genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
@@ -49,10 +60,7 @@ async def gemini_analysis(messages):
     try:
         response = model.generate_content(prompt)
         raw = response.text
-
-        # Clean up markdown-style wrapping (```json ... ```)
         cleaned = re.sub(r"```json|```", "", raw).strip()
-
         result = json.loads(cleaned)
         return result
 
@@ -67,7 +75,7 @@ async def gemini_analysis(messages):
             "error": "❌ Unexpected failure in gemini_analysis.",
             "exception": str(e)
         }
-
+  
 
 def estimate_tokens(messages: List[str]) -> int:
     all_text = " ".join(messages)
