@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers.chat import chat_router
 from routers.user import user_router
-from routers.ml_analysis import ml_router
+# from routers.ml_analysis import ml_router
 
 
 
@@ -30,6 +30,6 @@ app.add_middleware(
 # Routers
 app.include_router(user_router)
 app.include_router(chat_router)
-app.include_router(ml_router)
+# app.include_router(ml_router)
 
 
