@@ -1,32 +1,35 @@
-from fastapi import APIRouter, Request
-from db import db  # Assuming you have a db client here
-from ml_chat_analysis import gemini  # Or however you use Gemini API
+from fastapi import APIRouter, Request, Depends, HTTPException
+from db import db
+from utils import gemini_chatbot_response
+from middleware.auth import get_current_user
 
 chatbot_router = APIRouter()
 
 @chatbot_router.post("/chatbot/query")
-async def answer_chat_query(request: Request):
+async def answer_chat_query(request: Request, user_id: str = Depends(get_current_user)):
     data = await request.json()
-    user_id = data["userId"]
-    query = data["query"]
+    query = data.get("query", "")
 
-    session = db.sessions.find_one(
-        {"userId": user_id}, sort=[("timestamp", -1)]
+    # Step 1: Get user's current token count
+    user = await db.users.find_one({"user_id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if user.get("tokens", 0) < 2:
+        raise HTTPException(status_code=402, detail="Not enough tokens")
+
+    # Step 2: Fetch last analysis
+    session = await db.chats.find_one({"user_id": user_id})
+    if not session or "analysis" not in session:
+        return {"reply": "No recent analysis found to answer your question."}
+
+    # Step 3: Call Gemini to answer the query
+    reply = await gemini_chatbot_response(session["analysis"], query)
+
+    # Step 4: Deduct 2 tokens
+    await db.users.update_one(
+        {"user_id": user_id},
+        {"$inc": {"tokens": -2}}
     )
 
-    if not session:
-        return {"reply": "No recent session found for this user."}
-
-    prompt = f"""
-    You are an AI assistant helping users understand their own chat analysis.
-
-    Summary: {session['summary']}
-    Sentiment: {session['sentiment']}
-    Tags: {', '.join(session['tags'])}
-    Messages: {session['messages'][-10:]}
-
-    User question: {query}
-    """
-
-    result = gemini.generate_content(prompt)
-    return {"reply": result.text}
+    return {"reply": reply}
