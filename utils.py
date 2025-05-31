@@ -82,3 +82,45 @@ def estimate_tokens(messages: List[str]) -> int:
     word_count = len(all_text.split())
     estimated_tokens = word_count // 4 
     return estimated_tokens
+
+
+
+async def gemini_chatbot_response(session_data: dict, user_query: str) -> str:
+    """
+    Use Gemini to answer user questions about a past session.
+    session_data = {
+        "summary": "...",
+        "sentiment_counts": {...},
+        "keywords": [...],
+        "topic_frequency": {...},
+        "insights": [...],
+        "messages": [...]
+    }
+    """
+    genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+    model = genai.GenerativeModel("gemini-2.0-flash")
+
+    # Construct prompt using session data
+    prompt = f"""
+    You are an AI assistant that helps users understand their chat analytics.
+
+    Here is their previous session analysis:
+    - Summary: {session_data.get("summary", "")}
+    - Sentiment counts: {session_data.get("sentiment_counts", {})}
+    - Keywords: {', '.join(session_data.get("keywords", []))}
+    - Topic frequency: {session_data.get("topic_frequency", {})}
+    - Insights: {session_data.get("insights", [])}
+
+    Chat messages: {session_data.get("messages", [])[-10:]}  # Optional context
+
+    Now, the user is asking:
+    "{user_query}"
+
+    Provide a helpful, concise answer in plain English.
+    """
+
+    try:
+        response = model.generate_content(prompt)
+        return response.text.strip()
+    except Exception as e:
+        return f"Failed to generate response: {str(e)}"
