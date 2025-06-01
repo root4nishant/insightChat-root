@@ -84,39 +84,28 @@ def estimate_tokens(messages: List[str]) -> int:
     return estimated_tokens
 
 
-
-async def gemini_chatbot_response(session_data: dict, user_query: str) -> str:
+async def gemini_chatbot_response(messages: list, user_query: str) -> str:
     """
-    Use Gemini to answer user questions about a past session.
-    session_data = {
-        "summary": "...",
-        "sentiment_counts": {...},
-        "keywords": [...],
-        "topic_frequency": {...},
-        "insights": [...],
-        "messages": [...]
-    }
+    Use Gemini to answer user questions based on raw chat messages.
+    
+    messages: list of dicts like { "sender": "user", "text": "..." }
+    user_query: the user's natural language question
     """
     genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
     model = genai.GenerativeModel("gemini-2.0-flash")
 
-    # Construct prompt using session data
+    last_messages = messages[-20:] if len(messages) >= 20 else messages
+    message_text = "\n".join([msg["text"] for msg in last_messages if "text" in msg])
+
     prompt = f"""
-    You are an AI assistant that helps users understand their chat analytics.
+    These are user chat messages:
 
-    Here is their previous session analysis:
-    - Summary: {session_data.get("summary", "")}
-    - Sentiment counts: {session_data.get("sentiment_counts", {})}
-    - Keywords: {', '.join(session_data.get("keywords", []))}
-    - Topic frequency: {session_data.get("topic_frequency", {})}
-    - Insights: {session_data.get("insights", [])}
+    {message_text}
 
-    Chat messages: {session_data.get("messages", [])[-10:]}  # Optional context
-
-    Now, the user is asking:
+    The user has a question about the above chat:
     "{user_query}"
 
-    Provide a helpful, concise answer in plain English.
+    Answer clearly, concisely, and conversationally.
     """
 
     try:
