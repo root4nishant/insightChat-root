@@ -24,7 +24,7 @@ async def answer_chat_query(request: Request, user_id: str = Depends(get_current
         return {"reply": "No recent analysis found to answer your question."}
 
     # Step 3: Call Gemini to answer the query
-    reply = await gemini_chatbot_response(session["analysis"], query)
+    reply = await gemini_chatbot_response(session["messages"], query)
 
     # Step 4: Deduct 2 tokens
     await db.users.update_one(
