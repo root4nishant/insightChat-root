@@ -89,27 +89,43 @@ async def gemini_chatbot_response(messages: list, user_query: str) -> str:
     Use Gemini to answer user questions based on raw chat messages.
     
     messages: list of dicts like { "sender": "user", "text": "..." }
-    user_query: the user's natural language question
+    user_query: the user's natural language question (any language).
     """
+    import os
+    import google.generativeai as genai
+
     genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
     model = genai.GenerativeModel("gemini-2.0-flash")
 
+    # Use the last 20 messages for context
     last_messages = messages[-20:] if len(messages) >= 20 else messages
-    message_text = "\n".join([msg["text"] for msg in last_messages if "text" in msg])
+    message_text = "\n".join([f"{msg['sender']}: {msg['text']}" for msg in last_messages if "text" in msg])
 
+    # Enhanced prompt
     prompt = f"""
-    These are user chat messages:
+You are a multilingual chat analysis assistant. You help users understand WhatsApp-like chats by answering their questions clearly and concisely.
 
-    {message_text}
+Chat messages:
+{message_text}
 
-    The user has a question about the above chat:
-    "{user_query}"
+User's question:
+"{user_query}"
 
-    Answer clearly, concisely, and conversationally.
-    """
+Guidelines:
+- Respond in the same language as the user's query.
+- Use short answers (1–3 lines max).
+- If the user asks about:
+  - **Sentiment** → mention positive/negative/neutral counts and examples.
+  - **Links** → extract and list them if present.
+  - **Summary** → give a short overview.
+  - **Insights** → describe patterns, repeated concerns or praise.
+- Don't return code blocks, markdown, or long explanations.
+
+Reply now in plain text:
+"""
 
     try:
         response = model.generate_content(prompt)
         return response.text.strip()
     except Exception as e:
-        return f"Failed to generate response: {str(e)}"
+        return f"Gemini error: {str(e)}"
