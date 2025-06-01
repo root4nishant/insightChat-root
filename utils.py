@@ -110,6 +110,12 @@ Chat messages:
 
 User's question:
 "{user_query}"
+Instructions:
+- If the user asks for **links**, only extract and show links that are actually present in the messages. Do not make up or invent any.
+- If no links exist, clearly say “No links found.”
+- Use clean plain text — avoid markdown or code formatting.
+- If the user asks in Hindi or another language, reply in that language.
+- Keep the response brief (max 2–3 lines).
 
 Guidelines:
 - Respond in the same language as the user's query.
