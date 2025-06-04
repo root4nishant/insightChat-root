@@ -89,20 +89,21 @@ async def gemini_chatbot_response(messages: list, user_query: str) -> str:
     Use Gemini to answer user questions based on raw chat messages.
     Supports urgency, sentiment, link detection, and multilingual understanding.
     '''
+    import os
+    import google.generativeai as genai
+
     genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
     model = genai.GenerativeModel("gemini-2.0-flash")
 
-    # Extract the last 20 messages
     last_messages = messages[-20:] if len(messages) >= 20 else messages
     formatted_messages = "\n".join(
-        [f"{msg.get('sender', 'user')}: {msg.get('text', '')}" for msg in last_messages if "text" in msg]
+        [f"{msg.get('sender', 'user')}: {msg.get('text', '').strip()}" for msg in last_messages if msg.get("text")]
     )
 
-    # Prompt to instruct Gemini how to interpret context and respond
     prompt = f"""
 You are InsightChat AI, a helpful multilingual assistant that interprets chat logs and answers user questions accurately.
 
-Below are user chat messages:
+Here is the actual chat context you must analyze and base your reply on:
 {formatted_messages}
 
 The user is now asking:
@@ -126,4 +127,4 @@ Limit your answer to 2-3 lines. Avoid markdown, code, or extra formatting.
         response = model.generate_content(prompt)
         return response.text.strip()
     except Exception as e:
-        return f"Gemini error: {str(e)}"
+        return "⚠️ Sorry, I couldn’t process that. Please try rephrasing your question or try again later."

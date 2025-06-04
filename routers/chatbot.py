@@ -10,7 +10,7 @@ async def answer_chat_query(request: Request, user_id: str = Depends(get_current
     data = await request.json()
     query = data.get("query", "")
 
-    # Step 1: Get user's current token count
+    # Step 1: Check token
     user = await db.users.find_one({"user_id": user_id})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -18,15 +18,25 @@ async def answer_chat_query(request: Request, user_id: str = Depends(get_current
     if user.get("tokens", 0) < 2:
         raise HTTPException(status_code=402, detail="Not enough tokens")
 
-    # Step 2: Fetch last analysis
+    # Step 2: Fetch session
     session = await db.chats.find_one({"user_id": user_id})
     if not session or "analysis" not in session:
         return {"reply": "No recent analysis found to answer your question."}
 
-    # Step 3: Call Gemini to answer the query
-    reply = await gemini_chatbot_response(session["messages"], query)
+    messages = session.get("messages", [])
 
-    # Step 4: Deduct 2 tokens
+    # Step 3: Fix string-only messages
+    if messages and isinstance(messages[0], str):
+        messages = [{"sender": "user", "text": m} for m in messages]
+
+    # Debug print
+    print("🧪 messages field type:", type(messages))
+    print("🔍 first message:", messages[0] if messages else "No messages")
+
+    # Step 4: Gemini
+    reply = await gemini_chatbot_response(messages, query)
+
+    # Step 5: Deduct 2 tokens
     await db.users.update_one(
         {"user_id": user_id},
         {"$inc": {"tokens": -2}}
