@@ -85,49 +85,41 @@ def estimate_tokens(messages: List[str]) -> int:
 
 
 async def gemini_chatbot_response(messages: list, user_query: str) -> str:
-    """
+    '''
     Use Gemini to answer user questions based on raw chat messages.
-    
-    messages: list of dicts like { "sender": "user", "text": "..." }
-    user_query: the user's natural language question (any language).
-    """
-    import os
-    import google.generativeai as genai
-
+    Supports urgency, sentiment, link detection, and multilingual understanding.
+    '''
     genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
     model = genai.GenerativeModel("gemini-2.0-flash")
 
-    # Use the last 20 messages for context
+    # Extract the last 20 messages
     last_messages = messages[-20:] if len(messages) >= 20 else messages
-    message_text = "\n".join([f"{msg['sender']}: {msg['text']}" for msg in last_messages if "text" in msg])
+    formatted_messages = "\n".join(
+        [f"{msg.get('sender', 'user')}: {msg.get('text', '')}" for msg in last_messages if "text" in msg]
+    )
 
-    # Enhanced prompt
+    # Prompt to instruct Gemini how to interpret context and respond
     prompt = f"""
-You are a multilingual chat analysis assistant. You help users understand WhatsApp-like chats by answering their questions clearly and concisely.
+You are InsightChat AI, a helpful multilingual assistant that interprets chat logs and answers user questions accurately.
 
-Chat messages:
-{message_text}
+Below are user chat messages:
+{formatted_messages}
 
-User's question:
+The user is now asking:
 "{user_query}"
-Instructions:
-- If the user asks for **links**, only extract and show links that are actually present in the messages. Do not make up or invent any.
-- If no links exist, clearly say “No links found.”
-- Use clean plain text — avoid markdown or code formatting.
-- If the user asks in Hindi or another language, reply in that language.
-- Keep the response brief (max 2–3 lines).
+
+Your job is to answer ONLY what the user is asking, based on the chat messages. Be precise, brief, and avoid hallucinating data.
 
 Guidelines:
-- Respond in the same language as the user's query.
-- Use short answers (1–3 lines max).
-- If the user asks about:
-  - **Sentiment** → mention positive/negative/neutral counts and examples.
-  - **Links** → extract and list them if present.
-  - **Summary** → give a short overview.
-  - **Insights** → describe patterns, repeated concerns or praise.
-- Don't return code blocks, markdown, or long explanations.
+- If the user asks about urgency, highlight any urgent or time-sensitive messages.
+- If the user asks about sentiment, summarize the tone (positive, neutral, negative) with 1-2 examples.
+- If the user asks for links, extract only real links from the messages. Do not make them up.
+- If the user asks for summary or insights, give short key points.
+- If the user asks in another language, respond in that language.
+- If no relevant data is found, politely say so.
 
-Reply now in plain text:
+Respond in clear, friendly, human language.
+Limit your answer to 2-3 lines. Avoid markdown, code, or extra formatting.
 """
 
     try:
